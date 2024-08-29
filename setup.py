@@ -18,10 +18,9 @@ from os import path
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the relevant file
-#with open(path.join(here, "README.rst"), encoding="utf-8") as f:
-#    long_description = f.read()
-this_directory = Path(__file__).parent
-long_description = (this_directory / "README.md").read_text()
+with open(path.join(here, "README.rst"), encoding="utf-8") as f:
+    long_description = f.read()
+
 # Get the base version from the library.  (We'll find it in the `version.py`
 # file in the src directory, but we'll bypass actually loading up the library.)
 vspec = importlib.util.spec_from_file_location(
@@ -52,15 +51,15 @@ setup(
     [console_scripts]
     evil-jea=evil_jea.cli:cli
     """,
-    python_requires=">=3.11.0",
+    python_requires=">=0.0.1",
     license='MIT',  # noqa
     author='Sasha Thomas',
-    author_email='mathnerd2718@gmail.com',
+    author_email='sthomas@securityinnovation.com',
     # Use the URL to the github repo.
-    url= 'https://github.com/sashathomas/evil-jea',
+    url= 'https://github.com/sashathomas/evil_jea',
     download_url=(
         f'https://github.com/sashathomas/'
-        f'evil-jea/archive/{version}.tar.gz'
+        f'evil_jea/archive/{version}.tar.gz'
     ),
     keywords=[
         # Add package keywords here.

@@ -18,9 +18,10 @@ from os import path
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the relevant file
-with open(path.join(here, "README.rst"), encoding="utf-8") as f:
-    long_description = f.read()
-
+#with open(path.join(here, "README.rst"), encoding="utf-8") as f:
+#    long_description = f.read()
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
 # Get the base version from the library.  (We'll find it in the `version.py`
 # file in the src directory, but we'll bypass actually loading up the library.)
 vspec = importlib.util.spec_from_file_location(

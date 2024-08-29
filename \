@@ -88,7 +88,7 @@ def connect(username, password, target, raw):
     
     \b
     JEA Shell Commands:
-        help                    Show list of available commands
+        help        Show list of available commands
         info [command]          Dump definitions for available commands. 
         call [command]          JEA bypass: Attempts to run [command] using call operator 
         function [command]      JEA bypass: Attempts to run [command] inside of a custom function

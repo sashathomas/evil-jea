@@ -15,13 +15,8 @@ from setuptools import setup, find_packages
 from codecs import open  # Use a consistent encoding.
 from os import path
 
-here = path.abspath(path.dirname(__file__))
-
-# Get the long description from the relevant file
-#with open(path.join(here, "README.rst"), encoding="utf-8") as f:
-#    long_description = f.read()
-this_directory = Path(__file__).parent
-long_description = (this_directory / "README.md").read_text()
+#this_directory = Path(__file__).parent
+#long_description = (this_directory / "README.md").read_text()
 # Get the base version from the library.  (We'll find it in the `version.py`
 # file in the src directory, but we'll bypass actually loading up the library.)
 vspec = importlib.util.spec_from_file_location(
@@ -41,7 +36,7 @@ version = "0.0.2"
 setup(
     name='evil-jea',
     description="A small WinRM client designed for interacting with JEA endpoints.",
-    long_description=long_description,
+    long_description="test description",
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     version=version,
     install_requires=[

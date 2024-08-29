@@ -31,12 +31,12 @@ vspec = importlib.util.spec_from_file_location(
 )
 vmod = importlib.util.module_from_spec(vspec)
 vspec.loader.exec_module(vmod)
-version = getattr(vmod, "__version__")
-
+#version = getattr(vmod, "__version__")
+version = "0.0.2"
 # If the environment has a build number set...
-if os.getenv("buildnum") is not None:
-    # ...append it to the version.
-    version = f"{version}.{os.getenv('buildnum')}"
+#if os.getenv("buildnum") is not None:
+#    # ...append it to the version.
+#    version = f"{version}.{os.getenv('buildnum')}"
 
 setup(
     name='evil-jea',

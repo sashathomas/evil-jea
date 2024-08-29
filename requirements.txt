@@ -1,0 +1,13 @@
+click
+pip-check-reqs
+pip-licenses
+flake8
+flake8-docstrings
+pytest
+pytest-cov
+pytest-pythonpath
+setuptools
+Sphinx
+sphinx-rtd-theme
+tox
+twine

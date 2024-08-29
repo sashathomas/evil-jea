@@ -1,0 +1,3 @@
+name: evil_jea
+dependencies:
+  - python=3.8

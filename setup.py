@@ -5,7 +5,7 @@
 This file is used to create the package we'll publish to PyPI.
 
 .. currentmodule:: setup.py
-.. moduleauthor:: Sasha Thomas <sthomas@securityinnovation.com>
+.. moduleauthor:: Sasha Thomas
 """
 
 import importlib.util

@@ -5,7 +5,7 @@
 A small WinRM client designed for interacting with JEA endpoints.
 
 .. currentmodule:: evil_jea
-.. moduleauthor:: Sasha Thomas <sthomas@securityinnovation.com>
+.. moduleauthor:: Sasha Thomas
 """
 
 from .version import __version__, __release__  # noqa

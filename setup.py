@@ -15,8 +15,8 @@ from setuptools import setup, find_packages
 from codecs import open  # Use a consistent encoding.
 from os import path
 
-#this_directory = Path(__file__).parent
-#long_description = (this_directory / "README.md").read_text()
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
 # Get the base version from the library.  (We'll find it in the `version.py`
 # file in the src directory, but we'll bypass actually loading up the library.)
 vspec = importlib.util.spec_from_file_location(
@@ -26,17 +26,17 @@ vspec = importlib.util.spec_from_file_location(
 )
 vmod = importlib.util.module_from_spec(vspec)
 vspec.loader.exec_module(vmod)
-#version = getattr(vmod, "__version__")
-version = "0.0.2"
+version = getattr(vmod, "__version__")
+#version = "0.0.2"
 # If the environment has a build number set...
-#if os.getenv("buildnum") is not None:
-#    # ...append it to the version.
-#    version = f"{version}.{os.getenv('buildnum')}"
+if os.getenv("buildnum") is not None:
+    # ...append it to the version.
+    version = f"{version}.{os.getenv('buildnum')}"
 
 setup(
     name='evil-jea',
     description="A small WinRM client designed for interacting with JEA endpoints.",
-    long_description="test description",
+    long_description=long_description,
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     version=version,
     install_requires=[

@@ -1,6 +1,6 @@
 # Evil-JEA
 
-A small WinRM client designed for interacting with JEA endpoints.
+A small WinRM client designed for interacting with JEA endpoints from Linux.
 
 ## Installation
 

